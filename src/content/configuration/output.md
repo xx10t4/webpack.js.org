@@ -9,6 +9,7 @@ contributors:
   - irth
   - fvgs
   - dhurlburtusa
+  - MagicDuck
 ---
 
 The top-level `output` key contains set of options instructing webpack on how and where it should output your bundles, assets and anything else you bundle or load with webpack.
@@ -64,7 +65,7 @@ auxiliaryComment: {
 
 ## `output.chunkFilename`
 
-`string`
+`string` `function`
 
 This option determines the name of non-entry chunk files. See [`output.filename`](#output-filename) option for details on the possible values.
 
@@ -93,6 +94,16 @@ Enable [cross-origin](https://developer.mozilla.org/en/docs/Web/HTML/Element/scr
 `crossOriginLoading: "anonymous"` - Enable cross-origin loading **without credentials**
 
 `crossOriginLoading: "use-credentials"` - Enable cross-origin loading **with credentials**
+
+
+## `output.jsonpScriptType`
+
+`string`
+
+Allows customization of the `script` type webpack injects `script` tags into the DOM to download async chunks. The following options are available:
+
+- `"text/javascript"` (default)
+- `"module"`: Use with ES6 ready code.
 
 
 ## `output.devtoolFallbackModuleFilenameTemplate`
@@ -128,7 +139,7 @@ This option is only used when [`devtool`](/configuration/devtool) uses an option
 Customize the names used in each source map's `sources` array. This can be done by passing a template string or function. For example, when using `devtool: 'eval'`, this is the default:
 
 ``` js
-devtoolModuleFilenameTemplate: "webpack:///[resource-path]?[loaders]"
+devtoolModuleFilenameTemplate: "webpack://[namespace]/[resource-path]?[loaders]"
 ```
 
 The following substitutions are available in template strings (via webpack's internal [`ModuleFilenameHelpers`](https://github.com/webpack/webpack/blob/master/lib/ModuleFilenameHelpers.js)):
@@ -142,6 +153,7 @@ The following substitutions are available in template strings (via webpack's int
 | [loaders]                | Explicit loaders and params up to the name of the first loader |
 | [resource]               | The path used to resolve the file and any query params used on the first loader |
 | [resource-path]          | The path used to resolve the file without any query params |
+| [namespace]              | The modules namespace. This is usually the library name when building as a library, empty otherwise |
 
 When using a function, the same options are available camel-cased via the `info` parameter:
 
@@ -154,9 +166,18 @@ devtoolModuleFilenameTemplate: info => {
 If multiple modules would result in the same name, [`output.devtoolFallbackModuleFilenameTemplate`](#output-devtoolfallbackmodulefilenametemplate) is used instead for these modules.
 
 
-## `output.filename`
+## `output.devtoolNamespace`
 
 `string`
+
+This option determines the modules namespace used with the [`output.devtoolModuleFilenameTemplate`](#output-devtoolmodulefilenametemplate). When not specified, it will default to the value of: [`output.library`](#output-library). It's used to prevent source file path collisions in sourcemaps when loading multiple libraries built with webpack.
+
+For example, if you have 2 libraries, with namespaces `library1` and `library2`, which both have a file `./src/index.js` (with potentially different contents), they will expose these files as `webpack://library1/./src/index.js` and `webpack://library2/./src/index.js`.
+
+
+## `output.filename`
+
+`string` `function`
 
 This option determines the name of each output bundle. The bundle is written to the directory specified by the [`output.path`](#output-path) option.
 
@@ -196,7 +217,7 @@ Make sure to read the [Caching guide](/guides/caching) for details. There are mo
 
 Note this option is called filename but you are still allowed to use something like `"js/[name]/bundle.js"` to create a folder structure.
 
-Note this options does not affect output files for on-demand-loaded chunks. For these files the [`output.chunkFilename`](#output-chunkfilename) option is used. It also doesn't affect files created by loaders. For these files see loader options.
+Note this option does not affect output files for on-demand-loaded chunks. For these files the [`output.chunkFilename`](#output-chunkfilename) option is used. Files created by loaders also aren't affected. In this case you would have to try the specific loader's available options.
 
 The following substitutions are available in template strings (via webpack's internal [`TemplatedPathPlugin`](https://github.com/webpack/webpack/blob/master/lib/TemplatedPathPlugin.js)):
 
@@ -209,6 +230,8 @@ The following substitutions are available in template strings (via webpack's int
 | [query]     | The module query, i.e., the string following `?` in the filename                    |
 
 The lengths of `[hash]` and `[chunkhash]` can be specified using `[hash:16]` (defaults to 20). Alternatively, specify [`output.hashDigestLength`](#output-hashdigestlength) to configure the length globally.
+
+If using a function for this option, the function will be passed an object containing the substitutions in the table above.
 
 T> When using the [`ExtractTextWebpackPlugin`](/plugins/extract-text-webpack-plugin), use `[contenthash]` to obtain a hash of the extracted file (neither `[hash]` nor `[chunkhash]` work).
 
@@ -225,8 +248,15 @@ The prefix length of the hash digest to use, defaults to `20`.
 
 ## `output.hashFunction`
 
-The hashing algorithm to use, defaults to `'md5'`. All functions from Node.JS' [`crypto.createHash`](https://nodejs.org/api/crypto.html#crypto_crypto_createhash_algorithm) are supported.
+`string|function`
 
+The hashing algorithm to use, defaults to `'md5'`. All functions from Node.JS' [`crypto.createHash`](https://nodejs.org/api/crypto.html#crypto_crypto_createhash_algorithm) are supported. Since `4.0.0-alpha2`, the `hashFunction` can now be a constructor to a custom hash function. You can provide a non-crypto hash function for performance reasons.
+
+``` js
+hashFunction: require('metrohash').MetroHash64
+```
+
+Make sure that the hashing function will have `update` and `digest` methods available.
 
 ## `output.hashSalt`
 
@@ -235,7 +265,7 @@ An optional salt to update the hash via Node.JS' [`hash.update`](https://nodejs.
 
 ## `output.hotUpdateChunkFilename`
 
-`string`
+`string` `function`
 
 Customize the filenames of hot update chunks. See [`output.filename`](#output-filename) option for details on the possible values.
 
@@ -261,7 +291,7 @@ For details see [`output.jsonpFunction`](#output-jsonpfunction).
 
 ## `output.hotUpdateMainFilename`
 
-`string`
+`string` `function`
 
 Customize the main hot update filename. See [`output.filename`](#output-filename) option for details on the possible values.
 
@@ -466,7 +496,7 @@ The generated output will be defined with the name "MyLibrary", i.e.
 
 ``` js
 define("MyLibrary", [], function() {
-  // This module return value is what your entry chunk returns
+  return _entry_return_;
 });
 ```
 
@@ -482,7 +512,7 @@ If `output.library` is undefined, the following is generated instead.
 
 ``` js
 define([], function() {
-  // This module returns is what your entry chunk returns
+  return _entry_return_;
 });
 ```
 
@@ -512,8 +542,8 @@ And finally the output is:
     exports["MyLibrary"] = factory();
   else
     root["MyLibrary"] = factory();
-})(this, function() {
-  //what this module returns is what your entry chunk returns
+})(typeof self !== 'undefined' ? self : this, function() {
+  return _entry_return_;
 });
 ```
 
@@ -537,8 +567,8 @@ The output will be:
     var a = factory();
     for(var i in a) (typeof exports === 'object' ? exports : root)[i] = a[i];
   }
-})(this, function() {
-  //what this module returns is what your entry chunk returns
+})(typeof self !== 'undefined' ? self : this, function() {
+  return _entry_return_;
 });
 ```
 
@@ -597,7 +627,7 @@ Note it also adds some info about tree shaking to the generated bundle.
 
 ## `output.publicPath`
 
-`string`
+`string` `function`
 
 This is an important option when using on-demand-loading or loading external resources like images, files, etc. If an incorrect value is specified you'll receive 404 errors while loading these resources.
 
