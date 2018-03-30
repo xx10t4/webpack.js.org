@@ -177,7 +177,7 @@ In this setup, `index.js` explicitly requires `lodash` to be present, and binds 
 With that said, let's run `npx webpack` with our script as the [entry point](/concepts/entry-points) and `bundle.js` as the [output](/concepts/output). The `npx` command, which ships with Node 8.2 or higher, runs the webpack binary (`./node_modules/.bin/webpack`) of the webpack package we installed in the beginning:
 
 ``` bash
-npx webpack
+npx webpack src/index.js dist/bundle.js
 
 Hash: dabab1bac2b940c1462b
 Version: webpack 4.0.1
