@@ -17,7 +17,7 @@ export default class Navigation extends React.Component {
             <i className="icon-menu" />
           </div>
 
-          <Link className="navigation__logo" to="/">
+          <Link className="navigation__logo" to="/v3/">
             <Logo light={ true } />
           </Link>
 
@@ -73,7 +73,9 @@ export default class Navigation extends React.Component {
             ]} />
         </Container>
 
-        { Links.filter(link => this._isActive(link) && link.children).map(link => (
+        { Links.filter(link => {
+          return this._isActive(link) && link.children;
+        }).map(link => (
           <div className="navigation__bottom" key={ link.title }>
             <Container className="navigation__inner">
               {
